@@ -51,3 +51,30 @@ func TestTarget(t *testing.T) {
 	}
 
 }
+
+func TestCondition(t *testing.T) {
+	jexp1 := "/bs[@a='1'][@c='2'] | [@b='3'] & [@d='4']"
+	content := headHandler([]rune(jexp1))
+	var i = 1
+	o := getTarget(content, &i)
+	if o.GetString(content) != "bs" {
+		t.Error()
+	}
+
+	condslist := getConditions(content, &i)
+
+	var result string
+	for n, conds := range condslist {
+		if n > 0 {
+			result += "|"
+		}
+		for _, cond := range conds {
+			result += cond.GetString(content)
+		}
+	}
+
+	if result != "[@a='1'][@c='2']|[@b='3'][@d='4']" {
+		t.Error(result)
+	}
+
+}

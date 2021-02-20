@@ -1,6 +1,8 @@
 package jpath
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Object 对象
 type object struct {
@@ -35,8 +37,68 @@ func skipSpace(content []rune, i *int) {
 	}
 }
 
-func getCondition(content []rune, i *int) {
+func getCondition(content []rune, i *int) (head *object) {
 
+	n := *i
+
+	head = &object{Start: n}
+	defer func() {
+		head.End = n
+		*i = n
+	}()
+
+	for ; n < len(content); n++ {
+		c := content[n]
+		switch c {
+		case ']':
+			n++
+			return
+		case '\\':
+			n++
+			continue
+		default:
+			continue
+		}
+	}
+
+	return
+}
+
+func getConditions(content []rune, i *int) (condslist [][]*object) { // 每个[]*object条件都是 or 关系
+	n := *i
+
+	var conds []*object
+
+	defer func() {
+		condslist = append(condslist, conds)
+		*i = n
+	}()
+
+	skipSpace(content, &n)
+	conds = append(conds, getCondition(content, &n))
+	skipSpace(content, &n)
+
+	for n < len(content) {
+		c := content[n]
+
+		switch c {
+		case '|':
+			condslist = append(condslist, conds)
+			conds = []*object{}
+			break
+		case '&':
+			break
+		case '[':
+			conds = append(conds, getCondition(content, &n))
+			skipSpace(content, &n)
+			continue // 避免n++
+		case '/':
+			return
+		}
+		n++
+	}
+
+	return
 }
 
 func getTarget(content []rune, i *int) (head *object) {
