@@ -2,6 +2,8 @@ package jpath
 
 import (
 	"fmt"
+	"log"
+	"strconv"
 )
 
 // Object 对象
@@ -9,6 +11,13 @@ type object struct {
 	Start int
 	End   int
 }
+
+type indexes struct {
+	Start int
+	End   int // End == 0 时 表达 [1] 单索引形式
+}
+
+var conditionHandler func(cxt *Context) bool
 
 func (o *object) Get(content []rune) []rune {
 	return content[o.Start:o.End]
@@ -20,8 +29,9 @@ func (o *object) GetString(content []rune) string {
 
 // Path 路径
 type Path struct {
-	Index  object // 整个路径解析的范围
-	Target object // 查找的对象
+	Index  indexes // 整个路径解析的范围
+	Target object  // 查找的对象
+	Depth  int     // 查找的深度
 
 	Type int // 1 - 2. find all or one target.(move next)  -1. back (move prev) 0. root
 
@@ -37,71 +47,20 @@ func skipSpace(content []rune, i *int) {
 	}
 }
 
-func getCondition(content []rune, i *int) (head *object) {
+type nexttype int
 
-	n := *i
+const (
+	// nIndexes 范围 [] [:]所有 [1] [1:] [:2] [1:2]
+	nIndexes nexttype = 1
+	// nCondition 条件 ()
+	nCondition nexttype = 2
+	// nNextPath 下个路径 /
+	nNextPath nexttype = 3
+	// nDepth 深度
+	nDepth nexttype = 4
+)
 
-	head = &object{Start: n}
-	defer func() {
-		head.End = n
-		*i = n
-	}()
-
-	for ; n < len(content); n++ {
-		c := content[n]
-		switch c {
-		case ']':
-			n++
-			return
-		case '\\':
-			n++
-			continue
-		default:
-			continue
-		}
-	}
-
-	return
-}
-
-func getConditions(content []rune, i *int) (condslist [][]*object) { // 每个[]*object条件都是 or 关系
-	n := *i
-
-	var conds []*object
-
-	defer func() {
-		condslist = append(condslist, conds)
-		*i = n
-	}()
-
-	skipSpace(content, &n)
-	conds = append(conds, getCondition(content, &n))
-	skipSpace(content, &n)
-
-	for n < len(content) {
-		c := content[n]
-
-		switch c {
-		case '|':
-			condslist = append(condslist, conds)
-			conds = []*object{}
-			break
-		case '&':
-			break
-		case '[':
-			conds = append(conds, getCondition(content, &n))
-			skipSpace(content, &n)
-			continue // 避免n++
-		case '/':
-			return
-		}
-		n++
-	}
-
-	return
-}
-
-func getTarget(content []rune, i *int) (head *object) {
+func getTarget(content []rune, i *int) (head *object, nt nexttype) {
 
 	skipSpace(content, i)
 	n := *i
@@ -115,14 +74,133 @@ func getTarget(content []rune, i *int) (head *object) {
 	for ; n < len(content); n++ {
 		c := content[n]
 		switch c {
-		case '[':
+		case '[': // 表示范围
+			nt = nIndexes
+			return
+		case '(': // 条件
+			nt = nCondition
 			return
 		case ' ':
+			nn := n + 1
+			for ; nn < len(content); nn++ {
+				c := content[nn]
+				switch c {
+				case ' ':
+					continue
+				case '[': // 表示范围
+					nt = nIndexes
+					return
+				case '<':
+					nt = nDepth
+					return
+				case '(': // 条件
+					nt = nCondition
+					return
+				case '/':
+					nt = nNextPath
+					return
+				default:
+					panic(fmt.Errorf("exp error"))
+				}
+			}
 			return
-		case '/':
+		case '/': // 结束这段路径解析
+			nt = nNextPath
 			return
 		default:
 			continue
+		}
+	}
+
+	return
+}
+
+func getIndexes(content []rune, i *int) (idxs *indexes, nt nexttype) {
+
+	n := *i
+	n++
+	defer func() {
+		*i = n
+	}()
+
+	// nIndexes 范围 [] [:]所有 [:2]  [1] [1:]  [1:2]
+	idxs = &indexes{}
+	c := content[n]
+	if c == ']' { // []
+		idxs.End = -1
+		return
+	} else if c == ':' {
+		n++
+		if content[n] == ']' { // [:]
+			idxs.End = -1
+			return
+		}
+		// [:2]
+		// strconv.Atoi()
+		var estr []rune
+		for ; n < len(content); n++ {
+			c = content[n]
+			if c == ']' {
+				break
+			}
+			estr = append(estr, c)
+		}
+
+		end, err := strconv.Atoi(string(estr))
+		if err != nil {
+			log.Panic(err, string(estr))
+		}
+		idxs.End = end
+		return
+	}
+
+	for ; n < len(content); n++ {
+		c := content[n]
+		var sstr []rune
+		for ; n < len(content); n++ {
+			c = content[n]
+			switch c {
+			case ']':
+				start, err := strconv.Atoi(string(sstr))
+				if err != nil {
+					log.Panic(err, string(sstr))
+				}
+				idxs.Start = start
+				return
+
+			case ':':
+				start, err := strconv.Atoi(string(sstr))
+				if err != nil {
+					log.Panic(err, string(sstr))
+				}
+				idxs.Start = start
+
+				n++
+				if content[n] == ']' { // [:]
+					idxs.End = -1
+					return
+				}
+
+				var estr []rune
+				for ; n < len(content); n++ {
+					c = content[n]
+					if c == ']' {
+						break
+					}
+					estr = append(estr, c)
+				}
+
+				end, err := strconv.Atoi(string(estr))
+				if err != nil {
+					log.Panic(err, string(estr))
+				}
+				idxs.End = end
+				return
+			default:
+				sstr = append(sstr, c)
+				// panic(fmt.Sprintf("error format. %b", c))
+			}
+
 		}
 	}
 
@@ -144,6 +222,14 @@ func headHandler(src []rune) (content []rune) {
 			content = append(content)
 			content = append(content, src[i:]...)
 			return
+		case '(':
+			content = append(content, '/', '.')
+			content = append(content, src[i:]...)
+			return
+		case '<':
+			content = append(content, '/', '.')
+			content = append(content, src[i:]...)
+			return
 		case '[':
 			content = append(content, '/', '.')
 			content = append(content, src[i:]...)
@@ -159,32 +245,24 @@ func headHandler(src []rune) (content []rune) {
 }
 
 // Parse 解析操作路径
-func Parse(src []rune) *Path {
+func Parse(src []rune) (result *Path) {
 
-	content := headHandler(src)
+	// content := headHandler(src)
 
-	cur := &Path{Type: 0}
-	for i := 0; i < len(content); i++ {
-		c0 := content[i]
-		switch c0 {
-		case '/':
-			p := &Path{}
-			if content[i+1] == '/' { // 类型判断
-				p.Type = 1
-			} else {
-				p.Type = 2
-			}
+	// result = &Path{Type: 0}
+	// cur := result
 
-			skipSpace(content, &i)
+	// var i = 0
+	// for i < len(content) {
+	// 	target, nt := getTarget(content, &i)
+	// 	switch nt {
+	// 	case nIndexes:
+	// 		indexes, nnt := getIndexes(content, &i)
 
-			cur.Next = p
+	// 	case nCondition:
+	// 	case nNextPath:
+	// 	}
+	// }
 
-		case ' ':
-			continue
-		default:
-			panic(fmt.Errorf("error %b", c0))
-		}
-	}
-
-	return nil
+	return
 }

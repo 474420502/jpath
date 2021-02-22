@@ -34,47 +34,110 @@ func TestHeadHandler(t *testing.T) {
 }
 
 func TestTarget(t *testing.T) {
-	jexp1 := "/ad/bs[@a='1']"
+	jexp1 := "/ad/bs[]"
 	content := headHandler([]rune(jexp1))
 	var i = 1
-	o := getTarget(content, &i)
+	o, ty1 := getTarget(content, &i)
 	if o.GetString(content) != "ad" {
 		t.Error()
 	}
+	t.Error(ty1)
 
-	jexp2 := "/bs[@a='1']"
+	jexp2 := "/bs[]"
 	content2 := headHandler([]rune(jexp2))
 	var i2 = 1
-	o2 := getTarget(content2, &i2)
+	o2, ty2 := getTarget(content2, &i2)
 	if o2.GetString(content2) != "bs" {
 		t.Error()
 	}
-
+	t.Error(ty2)
 }
 
-func TestCondition(t *testing.T) {
-	jexp1 := "/bs[@a='1'][@c='2'] | [@b='3'] & [@d='4']"
-	content := headHandler([]rune(jexp1))
-	var i = 1
-	o := getTarget(content, &i)
-	if o.GetString(content) != "bs" {
+func TestIndexes(t *testing.T) {
+
+	for _, jexp1 := range []string{"/bs[]", "/bs[:]"} {
+
+		content1 := headHandler([]rune(jexp1))
+		var i1 = 1
+		o1, ty1 := getTarget(content1, &i1)
+		if o1.GetString(content1) != "bs" {
+			t.Error()
+		}
+
+		if ty1 != nIndexes {
+			t.Error(ty1)
+		}
+
+		idxs1, nt1 := getIndexes(content1, &i1)
+		if nt1 != 0 {
+			t.Error(nt1)
+		}
+
+		if idxs1.Start != 0 || idxs1.End != -1 {
+			t.Error(idxs1)
+		}
+	}
+
+	jexp1 := "/bs[1:]"
+	content1 := headHandler([]rune(jexp1))
+	var i1 = 1
+	o1, ty1 := getTarget(content1, &i1)
+	if o1.GetString(content1) != "bs" {
 		t.Error()
 	}
 
-	condslist := getConditions(content, &i)
-
-	var result string
-	for n, conds := range condslist {
-		if n > 0 {
-			result += "|"
-		}
-		for _, cond := range conds {
-			result += cond.GetString(content)
-		}
+	if ty1 != nIndexes {
+		t.Error(ty1)
 	}
 
-	if result != "[@a='1'][@c='2']|[@b='3'][@d='4']" {
-		t.Error(result)
+	idxs1, nt1 := getIndexes(content1, &i1)
+	if nt1 != 0 {
+		t.Error(nt1)
 	}
 
+	if idxs1.Start != 1 || idxs1.End != -1 {
+		t.Error(idxs1)
+	}
+
+	jexp1 = "/bs[1:11]"
+	content1 = headHandler([]rune(jexp1))
+	i1 = 1
+	o1, ty1 = getTarget(content1, &i1)
+	if o1.GetString(content1) != "bs" {
+		t.Error()
+	}
+
+	if ty1 != nIndexes {
+		t.Error(ty1)
+	}
+
+	idxs1, nt1 = getIndexes(content1, &i1)
+	if nt1 != 0 {
+		t.Error(nt1)
+	}
+
+	if idxs1.Start != 1 || idxs1.End != 11 {
+		t.Error(idxs1)
+	}
+
+	jexp1 = "/bs[1]"
+	content1 = headHandler([]rune(jexp1))
+	i1 = 1
+	o1, ty1 = getTarget(content1, &i1)
+	if o1.GetString(content1) != "bs" {
+		t.Error()
+	}
+
+	if ty1 != nIndexes {
+		t.Error(ty1)
+	}
+
+	idxs1, nt1 = getIndexes(content1, &i1)
+	if nt1 != 0 {
+		t.Error(nt1)
+	}
+
+	if idxs1.Start != 11 {
+		t.Error(idxs1)
+	}
 }
