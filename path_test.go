@@ -41,7 +41,10 @@ func TestTarget(t *testing.T) {
 	if o.GetString(content) != "ad" {
 		t.Error()
 	}
-	t.Error(ty1)
+
+	if ty1 != nNextPath {
+		t.Error(ty1)
+	}
 
 	jexp2 := "/bs[]"
 	content2 := headHandler([]rune(jexp2))
@@ -50,7 +53,9 @@ func TestTarget(t *testing.T) {
 	if o2.GetString(content2) != "bs" {
 		t.Error()
 	}
-	t.Error(ty2)
+	if ty2 != nIndexes {
+		t.Error(ty2)
+	}
 }
 
 func TestIndexes(t *testing.T) {
@@ -137,7 +142,92 @@ func TestIndexes(t *testing.T) {
 		t.Error(nt1)
 	}
 
-	if idxs1.Start != 11 {
+	if idxs1.Start != 1 {
 		t.Error(idxs1)
 	}
+}
+
+func TestDepth(t *testing.T) {
+	var jexp string
+	var content []rune
+	var i = 1
+	var ty nexttype
+
+	jexp = "/bs<>[1:11]"
+	content = headHandler([]rune(jexp))
+
+	o, ty := getTarget(content, &i)
+	if o.GetString(content) != "bs" {
+		t.Error()
+	}
+
+	if ty != nDepth {
+		t.Error(ty)
+	}
+
+	t.Error(getDepth(content, &i))
+
+	i++
+	idxs, nt := getIndexes(content, &i)
+	if nt != 0 {
+		t.Error(nt)
+	}
+
+	t.Error(idxs)
+}
+
+func TestCondition(t *testing.T) {
+	var jexp string
+	var content []rune
+	var i = 1
+	var ty nexttype
+
+	jexp = "/bs<>[1:11]()"
+	content = headHandler([]rune(jexp))
+
+	o, ty := getTarget(content, &i)
+	if o.GetString(content) != "bs" {
+		t.Error()
+	}
+
+	if ty != nDepth {
+		t.Error(ty)
+	}
+
+	t.Error(getDepth(content, &i))
+
+	i++
+	idxs, nt := getIndexes(content, &i)
+	if nt != 0 {
+		t.Error(nt)
+	}
+
+	t.Error(idxs)
+	i++
+	t.Error(getCondition(content, &i))
+
+	i = 1
+	jexp = "/bs<>[1:11](se1)"
+	content = headHandler([]rune(jexp))
+
+	o, ty = getTarget(content, &i)
+	if o.GetString(content) != "bs" {
+		t.Error()
+	}
+
+	if ty != nDepth {
+		t.Error(ty)
+	}
+
+	t.Error(getDepth(content, &i))
+
+	i++
+	idxs, nt = getIndexes(content, &i)
+	if nt != 0 {
+		t.Error(nt)
+	}
+
+	t.Error(idxs)
+	i++
+	t.Error(getCondition(content, &i))
 }

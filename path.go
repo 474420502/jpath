@@ -47,6 +47,7 @@ func skipSpace(content []rune, i *int) {
 	}
 }
 
+//go:generate stringer -type=nexttype
 type nexttype int
 
 const (
@@ -54,10 +55,10 @@ const (
 	nIndexes nexttype = 1
 	// nCondition 条件 ()
 	nCondition nexttype = 2
-	// nNextPath 下个路径 /
-	nNextPath nexttype = 3
 	// nDepth 深度
-	nDepth nexttype = 4
+	nDepth nexttype = 3
+	// nNextPath 下个路径 /
+	nNextPath nexttype = 0
 )
 
 func getTarget(content []rune, i *int) (head *object, nt nexttype) {
@@ -79,6 +80,9 @@ func getTarget(content []rune, i *int) (head *object, nt nexttype) {
 			return
 		case '(': // 条件
 			nt = nCondition
+			return
+		case '<':
+			nt = nDepth
 			return
 		case ' ':
 			nn := n + 1
@@ -204,6 +208,69 @@ func getIndexes(content []rune, i *int) (idxs *indexes, nt nexttype) {
 		}
 	}
 
+	return
+}
+
+func getDepth(content []rune, i *int) (depth int) {
+	var err error
+
+	n := *i
+	n++
+	defer func() {
+		*i = n
+	}()
+
+	skipSpace(content, i)
+
+	if content[n] == '>' {
+		return -1
+	}
+
+	var depthstr []rune
+	defer func() {
+		depth, err = strconv.Atoi(string(depthstr))
+		if err != nil {
+			log.Panic(err, string(depthstr))
+		}
+	}()
+
+	for ; n < len(content); n++ {
+		c := content[n]
+		if c == '>' {
+			return
+		}
+		depthstr = append(depthstr, c)
+	}
+	return
+}
+
+func getCondition(content []rune, i *int) (condition string) {
+	// var err error
+
+	n := *i
+	n++
+	defer func() {
+		*i = n
+	}()
+
+	skipSpace(content, i)
+
+	if content[n] == ')' {
+		return ""
+	}
+
+	var conditionstr []rune
+	defer func() {
+		condition = string(conditionstr)
+	}()
+
+	for ; n < len(content); n++ {
+		c := content[n]
+		if c == ')' {
+			return
+		}
+		conditionstr = append(conditionstr, c)
+	}
 	return
 }
 
