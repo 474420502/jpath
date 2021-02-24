@@ -1,3 +1,10 @@
+/*
+ * @Author: hsm
+ * @Date: 2021-02-24 14:42:51
+ * @Last Modified by: mikey.zhaopeng
+ * @Last Modified time: 2021-02-24 14:43:14
+ */
+
 package jpath
 
 type Target struct {

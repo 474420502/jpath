@@ -1,3 +1,9 @@
+/*
+ * @Author: hsm
+ * @Date: 2021-02-24 14:42:51
+ * @Last Modified by: mikey.zhaopeng
+ * @Last Modified time: 2021-02-24 14:44:42
+ */
 package jpath
 
 import "testing"
@@ -165,7 +171,9 @@ func TestDepth(t *testing.T) {
 		t.Error(ty)
 	}
 
-	t.Error(getDepth(content, &i))
+	if depth := getDepth(content, &i); depth != -1 {
+		t.Error(depth)
+	}
 
 	i++
 	idxs, nt := getIndexes(content, &i)
@@ -173,7 +181,9 @@ func TestDepth(t *testing.T) {
 		t.Error(nt)
 	}
 
-	t.Error(idxs)
+	if idxs.Start != 1 && idxs.End != 11 {
+		t.Error(idxs)
+	}
 }
 
 func TestCondition(t *testing.T) {
@@ -194,17 +204,23 @@ func TestCondition(t *testing.T) {
 		t.Error(ty)
 	}
 
-	t.Error(getDepth(content, &i))
+	if depth := getDepth(content, &i); depth != -1 {
+		t.Error(depth)
+	}
 
 	i++
 	idxs, nt := getIndexes(content, &i)
 	if nt != 0 {
 		t.Error(nt)
 	}
+	if idxs.Start != 1 && idxs.End != 11 {
+		t.Error(idxs)
+	}
 
-	t.Error(idxs)
 	i++
-	t.Error(getCondition(content, &i))
+	if cond := getCondition(content, &i); cond != "" {
+		t.Error(cond)
+	}
 
 	i = 1
 	jexp = "/bs<>[1:11](se1)"
@@ -219,7 +235,9 @@ func TestCondition(t *testing.T) {
 		t.Error(ty)
 	}
 
-	t.Error(getDepth(content, &i))
+	if depth := getDepth(content, &i); depth != -1 {
+		t.Error(depth)
+	}
 
 	i++
 	idxs, nt = getIndexes(content, &i)
@@ -227,7 +245,12 @@ func TestCondition(t *testing.T) {
 		t.Error(nt)
 	}
 
-	t.Error(idxs)
+	if idxs.Start != 1 && idxs.End != 11 {
+		t.Error(idxs)
+	}
+
 	i++
-	t.Error(getCondition(content, &i))
+	if cond := getCondition(content, &i); cond != "se1" {
+		t.Error(cond)
+	}
 }

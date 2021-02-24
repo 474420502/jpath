@@ -1,3 +1,10 @@
+/*
+ * @Author: hsm
+ * @Date: 2021-02-24 14:41:19
+ * @Last Modified by: mikey.zhaopeng
+ * @Last Modified time: 2021-02-24 17:26:15
+ */
+
 package jpath
 
 import (
@@ -17,7 +24,8 @@ type indexes struct {
 	End   int // End == 0 时 表达 [1] 单索引形式
 }
 
-var conditionHandler func(cxt *Context) bool
+// ConditionHandler 条件控制处理
+type ConditionHandler func(cxt *Context) bool
 
 func (o *object) Get(content []rune) []rune {
 	return content[o.Start:o.End]
@@ -33,9 +41,9 @@ type Path struct {
 	Target object  // 查找的对象
 	Depth  int     // 查找的深度
 
-	Type int // 1 - 2. find all or one target.(move next)  -1. back (move prev) 0. root
+	Type int // 1 - 2. find all or one target.(move next)  -1. back (move prev) 0. root(代表当前)
 
-	Condition func(cur []byte) bool
+	Condition ConditionHandler // 该路径是否符合条件标准
 
 	Prev *Path
 	Next *Path
@@ -140,6 +148,7 @@ func getIndexes(content []rune, i *int) (idxs *indexes, nt nexttype) {
 			return
 		}
 		// [:2]
+
 		// strconv.Atoi()
 		var estr []rune
 		for ; n < len(content); n++ {
