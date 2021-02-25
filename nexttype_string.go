@@ -11,16 +11,26 @@ func _() {
 	_ = x[nIndexes-1]
 	_ = x[nCondition-2]
 	_ = x[nDepth-3]
-	_ = x[nNextPath-0]
+	_ = x[nNextPath-100]
+	_ = x[nEnd-0]
 }
 
-const _nexttype_name = "nNextPathnIndexesnConditionnDepth"
+const (
+	_nexttype_name_0 = "nEndnIndexesnConditionnDepth"
+	_nexttype_name_1 = "nNextPath"
+)
 
-var _nexttype_index = [...]uint8{0, 9, 17, 27, 33}
+var (
+	_nexttype_index_0 = [...]uint8{0, 4, 12, 22, 28}
+)
 
 func (i nexttype) String() string {
-	if i < 0 || i >= nexttype(len(_nexttype_index)-1) {
+	switch {
+	case 0 <= i && i <= 3:
+		return _nexttype_name_0[_nexttype_index_0[i]:_nexttype_index_0[i+1]]
+	case i == 100:
+		return _nexttype_name_1
+	default:
 		return "nexttype(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _nexttype_name[_nexttype_index[i]:_nexttype_index[i+1]]
 }

@@ -171,8 +171,8 @@ func TestDepth(t *testing.T) {
 		t.Error(ty)
 	}
 
-	if depth := getDepth(content, &i); depth != -1 {
-		t.Error(depth)
+	if depth, ty := getDepth(content, &i); depth != -1 || ty != nIndexes {
+		t.Error(depth, ty)
 	}
 
 	i++
@@ -204,8 +204,8 @@ func TestCondition(t *testing.T) {
 		t.Error(ty)
 	}
 
-	if depth := getDepth(content, &i); depth != -1 {
-		t.Error(depth)
+	if depth, ty := getDepth(content, &i); depth != -1 || ty != nIndexes {
+		t.Error(depth, ty)
 	}
 
 	i++
@@ -218,7 +218,7 @@ func TestCondition(t *testing.T) {
 	}
 
 	i++
-	if cond := getCondition(content, &i); cond != "" {
+	if cond, _ := getCondition(content, &i); cond != "" {
 		t.Error(cond)
 	}
 
@@ -235,8 +235,8 @@ func TestCondition(t *testing.T) {
 		t.Error(ty)
 	}
 
-	if depth := getDepth(content, &i); depth != -1 {
-		t.Error(depth)
+	if depth, ty := getDepth(content, &i); depth != -1 || ty != nIndexes {
+		t.Error(depth, ty)
 	}
 
 	i++
@@ -250,7 +250,7 @@ func TestCondition(t *testing.T) {
 	}
 
 	i++
-	if cond := getCondition(content, &i); cond != "se1" {
+	if cond, _ := getCondition(content, &i); cond != "se1" {
 		t.Error(cond)
 	}
 }

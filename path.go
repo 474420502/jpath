@@ -37,13 +37,13 @@ func (o *object) GetString(content []rune) string {
 
 // Path 路径
 type Path struct {
-	Index  indexes // 整个路径解析的范围
-	Target object  // 查找的对象
-	Depth  int     // 查找的深度
+	Indexes *indexes // 整个路径解析的范围
+	Target  *object  // 查找的对象
 
-	Type int // 1 - 2. find all or one target.(move next)  -1. back (move prev) 0. root(代表当前)
+	Depth int // 查找的深度
+	Type  int // 1 - 2. find all or one target.(move next)  -1. back (move prev) 0. root(代表当前)
 
-	Condition ConditionHandler // 该路径是否符合条件标准
+	Condition string // 该路径是否符合条件标准
 
 	Prev *Path
 	Next *Path
@@ -66,7 +66,9 @@ const (
 	// nDepth 深度
 	nDepth nexttype = 3
 	// nNextPath 下个路径 /
-	nNextPath nexttype = 0
+	nNextPath nexttype = 100
+	// nEnd 结束
+	nEnd nexttype = 0
 )
 
 func getTarget(content []rune, i *int) (head *object, nt nexttype) {
@@ -220,7 +222,7 @@ func getIndexes(content []rune, i *int) (idxs *indexes, nt nexttype) {
 	return
 }
 
-func getDepth(content []rune, i *int) (depth int) {
+func getDepth(content []rune, i *int) (depth int, nt nexttype) {
 	var err error
 
 	n := *i
@@ -232,7 +234,8 @@ func getDepth(content []rune, i *int) (depth int) {
 	skipSpace(content, i)
 
 	if content[n] == '>' {
-		return -1
+		depth = -1
+		return
 	}
 
 	var depthstr []rune
@@ -241,6 +244,23 @@ func getDepth(content []rune, i *int) (depth int) {
 		if err != nil {
 			log.Panic(err, string(depthstr))
 		}
+
+		n++
+		for ; n < len(content); n++ {
+			switch content[n] {
+			case '[':
+				nt = nIndexes
+			case '(':
+				nt = nCondition
+			case '/':
+				nt = nNextPath
+			case ' ':
+				continue
+			default:
+				panic(fmt.Errorf("%b:line:%d", content[n], n))
+			}
+		}
+
 	}()
 
 	for ; n < len(content); n++ {
@@ -253,19 +273,20 @@ func getDepth(content []rune, i *int) (depth int) {
 	return
 }
 
-func getCondition(content []rune, i *int) (condition string) {
+func getCondition(content []rune, i *int) (condition string, nt nexttype) {
 	// var err error
 
 	n := *i
 	n++
 	defer func() {
 		*i = n
+		nt = nNextPath
 	}()
 
 	skipSpace(content, i)
 
 	if content[n] == ')' {
-		return ""
+		return
 	}
 
 	var conditionstr []rune
@@ -294,8 +315,8 @@ func headHandler(src []rune) (content []rune) {
 		switch c {
 		case ' ':
 			continue
-		case '/':
-			content = append(content)
+		case '/': // '/' 表达为寻找
+			// content = append(content)
 			content = append(content, src[i:]...)
 			return
 		case '(':
@@ -323,22 +344,33 @@ func headHandler(src []rune) (content []rune) {
 // Parse 解析操作路径
 func Parse(src []rune) (result *Path) {
 
-	// content := headHandler(src)
+	content := headHandler(src)
 
-	// result = &Path{Type: 0}
-	// cur := result
+	result = &Path{Type: 0}
+	cur := result
 
-	// var i = 0
-	// for i < len(content) {
-	// 	target, nt := getTarget(content, &i)
-	// 	switch nt {
-	// 	case nIndexes:
-	// 		indexes, nnt := getIndexes(content, &i)
+	var i = 0
 
-	// 	case nCondition:
-	// 	case nNextPath:
-	// 	}
-	// }
+	for {
+		target, nt := getTarget(content, &i)
+		cur.Target = target
+		for i < len(content) {
+			switch nt {
+			case nDepth:
+				cur.Depth, nt = getDepth(content, &i)
+			case nIndexes:
+				cur.Indexes, nt = getIndexes(content, &i)
+			case nCondition:
+				cur.Condition, nt = getCondition(content, &i)
+			case nNextPath:
+				break
+			case nEnd:
+				return
+			default:
+				panic(fmt.Sprintf("nt error %s", nt))
+			}
+		}
+	}
 
 	return
 }
